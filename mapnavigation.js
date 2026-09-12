@@ -1,8 +1,9 @@
+// Wrap the plugin code in an isolated function scope.
 (function () {
-    'use strict';
-
+    'use strict';  // Enable stricter JavaScript error checking.
+    // Define the main plugin object.
     var AtlasIntelligence = function () {
-        this.name = 'Rohit_Map_Navigation';
+        this.name = 'Rohit_Map_Navigation'; 
         this.version = '3.1.0';
         this.id = 'atlas_intel_v31';
     };
@@ -10,12 +11,15 @@
     AtlasIntelligence.prototype.getName = function () { return this.name; };
     AtlasIntelligence.prototype.getVersion = function () { return this.version; };
     AtlasIntelligence.prototype.getId = function () { return this.id; };
-
+    
+// Register the plugin and access the MINERVA API.
     AtlasIntelligence.prototype.register = function (minervaProxy) {
-        var container = minervaProxy.element;
+        var container = minervaProxy.element;  // Get the HTML container provided by MINERVA.
         
-        var style = document.createElement('style');
+        var style = document.createElement('style'); // Create a CSS style element for the plugin interface.
         style.innerHTML = `
+        // Define the visual style of the plugin interface.
+        
             .intel-wrapper { font-family: 'Segoe UI', Tahoma, sans-serif; height: 750px; display: flex; flex-direction: column; background: #fff; border: 1px solid #d1d9e6; border-radius: 12px; overflow: hidden; }
             .intel-header { background: #1a237e; color: white; padding: 25px; }
             .intel-search { width: 100%; padding: 15px; border-radius: 8px; border: 4px solid #ffd600; background: #fff !important; color: #000 !important; font-size: 16px; font-weight: bold; margin-top: 10px; }
@@ -23,9 +27,11 @@
             .intel-sidebar { width: 320px; border-right: 1px solid #e0e0e0; overflow-y: auto; background: #f5f7f9; }
             .intel-content { flex: 1; overflow-y: auto; padding: 30px; background: #fff; }
             
-          
+          // Create an animated loading indicator.
             .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #1a237e; border-radius: 50%; width: 35px; height: 35px; animation: spin 1s linear infinite; margin: 20px auto; }
             @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+            // Style search results and highlight the selected item.
             
             .search-item { padding: 15px; border-bottom: 1px solid #e0e0e0; cursor: pointer; transition: background 0.2s; }
             .search-item.active { background: #fff59d; border-left: 6px solid #1a237e; }
@@ -41,13 +47,22 @@
             .btn-small { flex: 1; padding: 10px; font-size: 11px; border: 2px solid #1a237e; border-radius: 4px; background: #ffffff !important; color: #1a237e !important; cursor: pointer; font-weight: bold; text-align: center; display: block; }
             .btn-small:hover { background: #e8eaf6 !important; }
         `;
+        
+        // Add the plugin styles to the page.
+    
         document.head.appendChild(style);
-
+        
+// Build the main plugin user interface.
+    
         container.innerHTML = `
             <div class="intel-wrapper">
                 <div class="intel-header">
                     <div style="font-weight:bold; font-size:20px;">Map Navigation Plugin 2.0</div>
+                    
+                    // Create a disabled search box until MINERVA data is loaded.
+                    
                     <input type="text" id="intelInput" class="intel-search" placeholder="Search (e.g., TNF, STAT3)..." disabled>
+                    
                 </div>
                 <div class="intel-body">
                     <div id="intelSidebar" class="intel-sidebar">
@@ -60,31 +75,33 @@
                 </div>
             </div>
         `;
-
+        
+// Store all biological entities loaded from MINERVA.
         var allEntities = [];
         var modelDict = {}; 
         var sidebar = container.querySelector('#intelSidebar');
         var content = container.querySelector('#intelContent');
         var input = container.querySelector('#intelInput');
-
+        
+// Wait until both entities and models are loaded.
         Promise.all([
-            minervaProxy.project.data.getAllBioEntities(),
-            minervaProxy.project.data.getModels()
-        ]).then(function (results) {
-            allEntities = results[0];
-            results[1].forEach(function(m) {
+            minervaProxy.project.data.getAllBioEntities(), // Load all biological entities from the MINERVA project.
+            minervaProxy.project.data.getModels() // Load all models and submaps from MINERVA.
+        ]).then(function (results) { // Process the data after both MINERVA requests finish.
+            allEntities = results[0]; // Save all loaded biological entities.
+            results[1].forEach(function(m) { // Process every loaded MINERVA model.
                 var mId = String(m.id || m._id || m.modelId);
-                modelDict[mId] = m.name || m._name || "Submap layer";
+                modelDict[mId] = m.name || m._name || "Submap layer"; // Map each model ID to its readable model name.
             });
             container.querySelector('#loading').style.display = 'none';
-            input.disabled = false;
+            input.disabled = false; // Enable searching after the data is ready.
         });
 
-        input.oninput = function() {
+        input.oninput = function() { // Run the search whenever the user types.
             var val = this.value.toUpperCase();
             if (val.length < 2) return;
-            var matches = []; var seen = new Set();
-            allEntities.forEach(e => {
+            var matches = []; var seen = new Set(); // Store matching entity search results.
+            allEntities.forEach(e => { // Check every entity in the MINERVA project.
                 if ((e.name || "").toUpperCase().indexOf(val) !== -1 && !seen.has(e.name)) {
                     matches.push(e); seen.add(e.name);
                 }
